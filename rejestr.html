@@ -1,0 +1,56 @@
+<?php
+session_start();
+
+$host = "localhost"; 
+$db_user = "ytsilpwxpv_ziomek";         
+$db_pass = "123Biedr@456";          
+$db_name = "ytsilpwxpv_zwado"; 
+
+$conn = new mysqli($host, $db_user, $db_pass, $db_name);
+
+if ($conn->connect_error) {
+    die("Połączenie nieudane: " . $conn->connect_error);
+}
+
+// Pobieranie danych z formularza
+$username = trim($_POST['username']);
+$email = trim($_POST['email']);
+$password = $_POST['password'];
+$address=$_POST['address'];
+
+// Walidacja danych
+if (empty($username) || empty($email) || empty($password) || empty($address)) {
+    die("Wszystkie pola są wymagane!");
+}
+
+// Sprawdzanie, czy email już istnieje
+$stmt = $conn->prepare("SELECT id FROM users WHERE email = ?");
+$stmt->bind_param("s", $email);
+$stmt->execute();
+$stmt->store_result();
+
+if ($stmt->num_rows > 0) {
+    die("Email jest już zajęty.");
+}
+
+$stmt->close();
+
+// Haszowanie hasła
+$hashed_password = password_hash($password, PASSWORD_DEFAULT);
+
+// Dodawanie użytkownika
+$stmt = $conn->prepare("INSERT INTO users (username, email, password, address) VALUES (?, ?, ?, ?)");
+$stmt->bind_param("ssss", $username, $email, $hashed_password, $address);
+
+if ($stmt->execute()) {
+    $_SESSION['user_id'] = $conn->insert_id;
+    $_SESSION['username'] = $username;
+    header("Location: index.php");
+    exit();
+} else {
+    echo "Błąd: " . $stmt->error;
+}
+
+$stmt->close();
+$conn->close();
+?>
